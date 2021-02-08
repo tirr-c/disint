@@ -1,0 +1,10 @@
+[package]
+name = "disint-tide"
+version = "0.1.0"
+authors = ["Wonwoo Choi <chwo9843@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+async-trait = "0.1.42"
+ring = "0.16.19"
+tide = "0.15.0"

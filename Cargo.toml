@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "disint-model",
+  "disint-tide",
+]
