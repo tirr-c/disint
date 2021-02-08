@@ -3,6 +3,8 @@ name = "disint-model"
 version = "0.1.0"
 authors = ["Wonwoo Choi <chwo9843@gmail.com>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [dependencies]
 chrono = "0.4.19"
