@@ -3,24 +3,33 @@ use std::fmt;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
-    KeyFormat,
     NoSignature,
-    SignatureFormat,
     Timestamp,
-    Verification,
+    DisintSecurity(disint_security::Error),
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::DisintSecurity(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::KeyFormat => f.write_str("invalid key format"),
             Error::NoSignature => f.write_str("missing signature"),
-            Error::SignatureFormat => f.write_str("invalid signature format"),
             Error::Timestamp => f.write_str("timestamp is either too old or too new"),
-            Error::Verification => f.write_str("signature verification failed"),
+            Error::DisintSecurity(e) => write!(f, "inner error: {}", e),
         }
+    }
+}
+
+impl From<disint_security::Error> for Error {
+    fn from(v: disint_security::Error) -> Self {
+        Self::DisintSecurity(v)
     }
 }
 

@@ -1,5 +1,6 @@
 [workspace]
 members = [
   "disint-model",
+  "disint-security",
   "disint-tide",
 ]
