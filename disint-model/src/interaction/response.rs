@@ -1,4 +1,121 @@
-use super::*;
+use derive_builder::Builder;
+use serde::Serialize;
+
+use super::embed::{Embed, EmbedBuilder};
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum InteractionResponse {
+    Pong,
+    Acknowledge,
+    ChannelMessage(ApplicationCommandCallbackData),
+    ChannelMessageWithSource(ApplicationCommandCallbackData),
+    AcknowledgeWithSource,
+}
+
+impl Serialize for InteractionResponse {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        InteractionResponseInner::new(self).serialize(s)
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApplicationCommandCallbackData {
+    tts: Option<bool>,
+    content: String,
+    embeds: Option<Vec<Embed>>,
+    allowed_mentions: Option<AllowedMentions>,
+}
+
+#[derive(Debug, Default, Builder)]
+#[builder(default)]
+pub struct AllowedMentions {
+    roles: AllowedMentionsKind,
+    users: AllowedMentionsKind,
+    deny_mention_everyone: bool,
+}
+
+impl Serialize for AllowedMentions {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        #[derive(Default, Serialize)]
+        struct AllowedMentionsInner<'a> {
+            parse: Vec<&'static str>,
+            roles: Option<&'a [String]>,
+            users: Option<&'a [String]>,
+        }
+
+        let mut inner = AllowedMentionsInner::default();
+        if !self.deny_mention_everyone {
+            inner.parse.push("everyone");
+        }
+        match &self.roles {
+            AllowedMentionsKind::All => inner.parse.push("roles"),
+            AllowedMentionsKind::List(l) => inner.roles = Some(&*l),
+            _ => {}
+        }
+        match &self.users {
+            AllowedMentionsKind::All => inner.parse.push("users"),
+            AllowedMentionsKind::List(l) => inner.users = Some(&*l),
+            _ => {}
+        }
+
+        inner.serialize(s)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum AllowedMentionsKind {
+    All,
+    List(Vec<String>),
+    None,
+}
+
+impl AllowedMentionsKind {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl std::iter::FromIterator<String> for AllowedMentionsKind {
+    fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
+        Self::List(<Vec<_> as std::iter::FromIterator<_>>::from_iter(iter))
+    }
+}
+
+impl Default for AllowedMentionsKind {
+    fn default() -> Self {
+        Self::All
+    }
+}
+
+#[derive(Serialize)]
+struct InteractionResponseInner<'a> {
+    #[serde(rename = "type")]
+    ty: i32,
+    data: Option<&'a ApplicationCommandCallbackData>,
+}
+
+impl<'a> InteractionResponseInner<'a> {
+    fn new(val: &'a InteractionResponse) -> Self {
+        use InteractionResponse::*;
+
+        let (ty, data) = match val {
+            Pong => (1, None),
+            Acknowledge => (2, None),
+            ChannelMessage(data) => (3, Some(data)),
+            ChannelMessageWithSource(data) => (4, Some(data)),
+            AcknowledgeWithSource => (5, None),
+        };
+
+        Self { ty, data }
+    }
+}
 
 #[derive(Debug)]
 pub struct InteractionResponseBuilder<State>(State);
@@ -89,8 +206,8 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
         self
     }
 
-    pub fn embed(mut self, f: impl FnOnce(&mut embed::EmbedBuilder)) -> Self {
-        let mut builder = embed::EmbedBuilder::default();
+    pub fn embed(mut self, f: impl FnOnce(&mut EmbedBuilder)) -> Self {
+        let mut builder = EmbedBuilder::default();
         f(&mut builder);
         self.0
             .embeds
@@ -139,8 +256,8 @@ impl InteractionResponseBuilder<ChannelMessage> {
         self
     }
 
-    pub fn embed(mut self, f: impl FnOnce(&mut embed::EmbedBuilder)) -> Self {
-        let mut builder = embed::EmbedBuilder::default();
+    pub fn embed(mut self, f: impl FnOnce(&mut EmbedBuilder)) -> Self {
+        let mut builder = EmbedBuilder::default();
         f(&mut builder);
         self.0
             .embeds
