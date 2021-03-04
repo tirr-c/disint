@@ -25,7 +25,7 @@ impl Serialize for InteractionResponse {
 #[derive(Debug, Serialize)]
 pub struct ApplicationCommandCallbackData {
     tts: Option<bool>,
-    content: String,
+    content: Option<String>,
     embeds: Option<Vec<Embed>>,
     allowed_mentions: Option<AllowedMentions>,
 }
@@ -139,7 +139,7 @@ pub struct ChannelMessageNoContent {
 #[derive(Debug)]
 pub struct ChannelMessage {
     with_source: bool,
-    content: String,
+    content: Option<String>,
     tts: Option<bool>,
     embeds: Option<Vec<Embed>>,
     allowed_mentions: Option<AllowedMentions>,
@@ -189,7 +189,7 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
 
         InteractionResponseBuilder(ChannelMessage {
             with_source,
-            content: content.into(),
+            content: Some(content.into()),
             tts,
             embeds,
             allowed_mentions,
@@ -206,14 +206,27 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
         self
     }
 
-    pub fn embed(mut self, f: impl FnOnce(&mut EmbedBuilder)) -> Self {
+    pub fn embed(self, f: impl FnOnce(&mut EmbedBuilder)) -> InteractionResponseBuilder<ChannelMessage> {
+        let ChannelMessageNoContent {
+            with_source,
+            tts,
+            mut embeds,
+            allowed_mentions,
+        } = self.0;
+
         let mut builder = EmbedBuilder::default();
         f(&mut builder);
-        self.0
-            .embeds
+        embeds
             .get_or_insert_with(Vec::new)
             .push(builder.build().unwrap());
-        self
+
+        InteractionResponseBuilder(ChannelMessage {
+            with_source,
+            content: None,
+            tts,
+            embeds,
+            allowed_mentions,
+        })
     }
 
     pub fn allowed_mentions(mut self, allowed_mentions: AllowedMentions) -> Self {
@@ -244,6 +257,11 @@ impl InteractionResponseBuilder<ChannelMessage> {
         } else {
             InteractionResponse::ChannelMessage(data)
         }
+    }
+
+    pub fn content(mut self, content: impl Into<String>) -> Self {
+        self.0.content = Some(content.into());
+        self
     }
 
     pub fn with_source(mut self, with_source: bool) -> Self {
