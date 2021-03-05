@@ -1,7 +1,7 @@
 use derive_builder::Builder;
 use serde::Serialize;
 
-use super::embed::{Embed, EmbedBuilder};
+use super::embed::Embed;
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -206,7 +206,7 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
         self
     }
 
-    pub fn embed(self, f: impl FnOnce(&mut EmbedBuilder)) -> InteractionResponseBuilder<ChannelMessage> {
+    pub fn embed(self, embed: Embed) -> InteractionResponseBuilder<ChannelMessage> {
         let ChannelMessageNoContent {
             with_source,
             tts,
@@ -214,11 +214,9 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
             allowed_mentions,
         } = self.0;
 
-        let mut builder = EmbedBuilder::default();
-        f(&mut builder);
         embeds
             .get_or_insert_with(Vec::new)
-            .push(builder.build().unwrap());
+            .push(embed);
 
         InteractionResponseBuilder(ChannelMessage {
             with_source,
@@ -274,13 +272,11 @@ impl InteractionResponseBuilder<ChannelMessage> {
         self
     }
 
-    pub fn embed(mut self, f: impl FnOnce(&mut EmbedBuilder)) -> Self {
-        let mut builder = EmbedBuilder::default();
-        f(&mut builder);
+    pub fn embed(mut self, embed: Embed) -> Self {
         self.0
             .embeds
             .get_or_insert_with(Vec::new)
-            .push(builder.build().unwrap());
+            .push(embed);
         self
     }
 
