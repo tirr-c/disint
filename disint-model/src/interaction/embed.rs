@@ -7,8 +7,9 @@ pub struct Embed {
     pub url: Option<String>,
     pub timestamp: Option<chrono::DateTime<chrono::Utc>>,
     pub footer: Option<Footer>,
-    pub image: Option<Image>,
-    pub video: Option<Video>,
+    pub thumbnail: Option<Media>,
+    pub image: Option<Media>,
+    pub video: Option<Media>,
     pub provider: Option<Provider>,
     pub author: Option<Author>,
     pub fields: Option<Vec<Field>>,
@@ -22,16 +23,9 @@ pub struct Footer {
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
-pub struct Image {
+pub struct Media {
     pub url: Option<String>,
     pub proxy_url: Option<String>,
-    pub height: Option<u32>,
-    pub width: Option<u32>,
-}
-
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct Video {
-    pub url: Option<String>,
     pub height: Option<u32>,
     pub width: Option<u32>,
 }
