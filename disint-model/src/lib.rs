@@ -1,5 +1,6 @@
 mod option_value;
 
+#[cfg(feature = "incomplete")]
 pub mod command;
 pub mod interaction;
 
