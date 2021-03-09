@@ -1,7 +1,10 @@
 [package]
 name = "disint-security"
-version = "0.1.0"
+description = "Request validation for Discord Interaction."
 authors = ["Wonwoo Choi <chwo9843@gmail.com>"]
+homepage = "https://github.com/tirr-c/disint"
+repository = "https://github.com/tirr-c/disint"
+version = "0.1.0"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
