@@ -7,10 +7,8 @@ use super::embed::Embed;
 #[non_exhaustive]
 pub enum InteractionResponse {
     Pong,
-    Acknowledge,
-    ChannelMessage(ApplicationCommandCallbackData),
     ChannelMessageWithSource(ApplicationCommandCallbackData),
-    AcknowledgeWithSource,
+    DeferredChannelMessageWithSource,
 }
 
 impl Serialize for InteractionResponse {
@@ -107,10 +105,8 @@ impl<'a> InteractionResponseInner<'a> {
 
         let (ty, data) = match val {
             Pong => (1, None),
-            Acknowledge => (2, None),
-            ChannelMessage(data) => (3, Some(data)),
             ChannelMessageWithSource(data) => (4, Some(data)),
-            AcknowledgeWithSource => (5, None),
+            DeferredChannelMessageWithSource => (5, None),
         };
 
         Self { ty, data }
@@ -123,14 +119,11 @@ pub struct InteractionResponseBuilder<State>(State);
 #[derive(Debug)]
 pub struct Pong;
 
-#[derive(Debug, Default)]
-pub struct Acknowledge {
-    with_source: bool,
-}
+#[derive(Debug)]
+pub struct Deferred;
 
 #[derive(Debug, Default)]
 pub struct ChannelMessageNoContent {
-    with_source: bool,
     tts: Option<bool>,
     embeds: Option<Vec<Embed>>,
     allowed_mentions: Option<AllowedMentions>,
@@ -138,7 +131,6 @@ pub struct ChannelMessageNoContent {
 
 #[derive(Debug)]
 pub struct ChannelMessage {
-    with_source: bool,
     content: Option<String>,
     tts: Option<bool>,
     embeds: Option<Vec<Embed>>,
@@ -155,22 +147,13 @@ impl InteractionResponseBuilder<Pong> {
     }
 }
 
-impl InteractionResponseBuilder<Acknowledge> {
-    pub fn acknowledge() -> Self {
-        Self(Acknowledge::default())
-    }
-
-    pub fn with_source(mut self, with_source: bool) -> Self {
-        self.0.with_source = with_source;
-        self
+impl InteractionResponseBuilder<Deferred> {
+    pub fn deferred() -> Self {
+        Self(Deferred)
     }
 
     pub fn finish(self) -> InteractionResponse {
-        if self.0.with_source {
-            InteractionResponse::AcknowledgeWithSource
-        } else {
-            InteractionResponse::Acknowledge
-        }
+        InteractionResponse::DeferredChannelMessageWithSource
     }
 }
 
@@ -181,24 +164,17 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
 
     pub fn content(self, content: impl Into<String>) -> InteractionResponseBuilder<ChannelMessage> {
         let ChannelMessageNoContent {
-            with_source,
             tts,
             embeds,
             allowed_mentions,
         } = self.0;
 
         InteractionResponseBuilder(ChannelMessage {
-            with_source,
             content: Some(content.into()),
             tts,
             embeds,
             allowed_mentions,
         })
-    }
-
-    pub fn with_source(mut self, with_source: bool) -> Self {
-        self.0.with_source = with_source;
-        self
     }
 
     pub fn tts(mut self, tts: bool) -> Self {
@@ -208,7 +184,6 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
 
     pub fn embed(self, embed: Embed) -> InteractionResponseBuilder<ChannelMessage> {
         let ChannelMessageNoContent {
-            with_source,
             tts,
             mut embeds,
             allowed_mentions,
@@ -219,7 +194,6 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
             .push(embed);
 
         InteractionResponseBuilder(ChannelMessage {
-            with_source,
             content: None,
             tts,
             embeds,
@@ -236,7 +210,6 @@ impl InteractionResponseBuilder<ChannelMessageNoContent> {
 impl InteractionResponseBuilder<ChannelMessage> {
     pub fn finish(self) -> InteractionResponse {
         let ChannelMessage {
-            with_source,
             content,
             tts,
             embeds,
@@ -250,20 +223,11 @@ impl InteractionResponseBuilder<ChannelMessage> {
             allowed_mentions,
         };
 
-        if with_source {
-            InteractionResponse::ChannelMessageWithSource(data)
-        } else {
-            InteractionResponse::ChannelMessage(data)
-        }
+        InteractionResponse::ChannelMessageWithSource(data)
     }
 
     pub fn content(mut self, content: impl Into<String>) -> Self {
         self.0.content = Some(content.into());
-        self
-    }
-
-    pub fn with_source(mut self, with_source: bool) -> Self {
-        self.0.with_source = with_source;
         self
     }
 
